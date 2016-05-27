@@ -1,0 +1,5 @@
+makefile
+*.class
+src/smpl/lang/SMPLLexer.java
+src/smpl/lang/SMPLParser.java
+src/smpl/lang/sym.java

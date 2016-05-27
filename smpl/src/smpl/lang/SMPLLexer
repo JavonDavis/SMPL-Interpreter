@@ -1,0 +1,167 @@
+/* Specification for ECOLI tokens */
+
+// user customisations
+package smpl.lang;
+
+import java_cup.runtime.*;
+
+%%
+
+%cup
+%public
+
+%class SMPLLexer
+
+%type java_cup.runtime.Symbol
+
+%eofval{
+	return new Symbol(sym.EOF);
+%eofval}
+
+%state STRING
+
+%char
+%line
+
+%{
+    public int getChar()
+    {
+	return yychar + 1;
+    }
+
+    public int getLine()
+    {
+	return yyline + 1;
+    }
+
+    public String getText()
+    {
+	return yytext();
+    }
+%}
+
+nl = [\n\r]
+
+cc = [\b\f]|{nl}
+
+ws = ({cc}|[\t" "])
+
+num = [0-9]
+alpha = [A-Za-z_]
+symbols = ["$""?""~""+""/""^""*"".""%""<"">""=""-"]
+alphanum = {alpha}|{symbols}|{num}
+
+commentmessage = [^\r\n]
+linecomment = "//".*[\n\r]
+blockcomment = "/*"(.|\n\r|\n)*"*/"
+
+binary = #b[01]+
+hex = #x[0-9a-fA-F]+
+
+%%
+<YYINITIAL>	"."	{ //. on a line by itself is EOF
+			  return new Symbol(sym.EOF); }
+
+<YYINITIAL>    {nl} {
+                        //skip newline, but reset char counter
+                        yychar = 0;
+                      }
+<YYINITIAL>    {linecomment}  { // ignore line comments
+                      }
+<YYINITIAL>    {blockcomment}  { // ignore block comments
+                      }
+<YYINITIAL>    {ws} { // ignore whitespace
+                      }
+
+<YYINITIAL>    "," { return new Symbol(sym.COMMA); }
+<YYINITIAL>    ";" { return new Symbol(sym.SEMI); }
+<YYINITIAL>    ":" { return new Symbol(sym.COLON); }
+<YYINITIAL>    "(" { return new Symbol(sym.LPAREN); }
+<YYINITIAL>    ")" { return new Symbol(sym.RPAREN); }
+<YYINITIAL>    "[" { return new Symbol(sym.LBRACKET); }
+<YYINITIAL>    "]" { return new Symbol(sym.RBRACKET); }
+<YYINITIAL>    "?" { return new Symbol(sym.QUESTION); }
+<YYINITIAL>    "be"|"BE" { return new Symbol(sym.BE); }
+
+<YYINITIAL>    "{" { return new Symbol(sym.LBRACE); }
+<YYINITIAL>    "}" { return new Symbol(sym.RBRACE); }
+
+<YYINITIAL>	   if|IF { return new Symbol(sym.IF); }
+<YYINITIAL>    then|THEN { return new Symbol(sym.THEN); }
+<YYINITIAL>    else|ELSE { return new Symbol(sym.ELSE); }
+<YYINITIAL>    "<"|">"|"<="|">="|"="|"!="  { return new Symbol(sym.CMP, yytext()); }
+
+<YYINITIAL>    call|CALL { return new Symbol(sym.CALL); }
+<YYINITIAL>    let|LET { return new Symbol(sym.LET); }
+<YYINITIAL>    lazy|LAZY { return new Symbol(sym.LAZY); }
+<YYINITIAL>    def|DEF { return new Symbol(sym.DEF); }
+
+<YYINITIAL>    ":=" { return new Symbol(sym.ASSIGN); }
+<YYINITIAL>	   proc|PROC { return new Symbol(sym.PROC); }
+<YYINITIAL>    case|CASE { return new Symbol(sym.CASE); }
+<YYINITIAL>    print|PRINT { return new Symbol(sym.PRINT); }
+<YYINITIAL>    println|PRINTLN { return new Symbol(sym.PRINTLN); }
+<YYINITIAL>    read|READ { return new Symbol(sym.READ); }
+<YYINITIAL>    readint|READINT { return new Symbol(sym.READINT); }
+
+<YYINITIAL>    "+" { return new Symbol(sym.PLUS); }
+<YYINITIAL>    "-" { return new Symbol(sym.MINUS); }
+<YYINITIAL>    "*" { return new Symbol(sym.TIMES); }
+<YYINITIAL>    "/" { return new Symbol(sym.DIV); }
+<YYINITIAL>    "%" { return new Symbol(sym.MOD); }
+
+<YYINITIAL>    "&" { return new Symbol(sym.AMP); }
+<YYINITIAL>    "|" { return new Symbol(sym.PIPE); }
+<YYINITIAL>    "~" { return new Symbol(sym.TILDE); }
+
+<YYINITIAL>    "and"|"AND" { return new Symbol(sym.AND); }
+<YYINITIAL>    or|OR { return new Symbol(sym.OR); }
+<YYINITIAL>    not|NOT { return new Symbol(sym.NOT); }
+
+<YYINITIAL>    "@" { return new Symbol(sym.AT); }
+
+<YYINITIAL>    "#t" { return new Symbol(sym.TRUE, yytext()); }
+<YYINITIAL>    "#f" { return new Symbol(sym.FALSE, yytext()); }
+<YYINITIAL>    "#e" { return new Symbol(sym.NIL, yytext()); }
+<YYINITIAL>    {binary}|{hex} { return new Symbol(sym.BINHEX, yytext()); }
+
+
+<YYINITIAL>    	("+"|"-")?{num}+ {
+	       		// INTEGER
+	       		return new Symbol(sym.INTEGER, new Integer(yytext()));
+	       	}
+	       	
+<YYINITIAL>	   ([0-9]+[A-Za-z_][A-Za-z_0-9#+\-*?]*)|([A-Za-z_][A-Za-z_0-9#+\-*?]*) {
+			// IDENTIFIER
+			return new Symbol(sym.VAR, yytext());
+		}
+
+
+<YYINITIAL>     ("+"|"-")?0?"."{num}+ {
+			// FRACTION
+			return new Symbol(sym.FRACTION, new Double(yytext()));
+		}
+
+<YYINITIAL>	("+"|"-")?{num}+"."{num}+ {
+			// Real numbers
+			return new Symbol(sym.REAL, new Double(yytext()));
+		}
+
+<YYINITIAL>	\" {
+			yybegin(STRING);
+		}
+
+<YYINITIAL>	. {
+		    throw new java.io.IOException("Unrecognised character: " +
+							yytext());
+		}
+
+<STRING>	\" {
+			yybegin(YYINITIAL);
+		}
+
+<STRING>	[^\"]* {
+			// constant string
+			// System.out.println(yytext());
+			return new Symbol(sym.STRING, yytext());
+		}

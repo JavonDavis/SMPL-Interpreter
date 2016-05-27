@@ -1,0 +1,209 @@
+
+// test a line comment
+println("*** Line comments ***");
+1 + // 2
+3 ;
+
+1 + /* 2 */ 2 ;
+println("*** End of line comments ***");
+
+// integers
+print("*** Integers Tests ***\n");
+print("10: "); println(10);
+//print("#b101"); println(#b101);
+//print("#x10ff"); println(#x10ff);
+print("*** End of Integers ***\n");
+
+// identifiers
+print("*** Identifiers Tests ***\n");
+def x 1;
+def x1 1 ;
+def x1y 1;
+def 1xy 1;
+def 11xy 1;
+print("*** End of Identifiers tests ***\n");
+
+// strings
+println("*** Strings test ***");
+print(substr("foo", 1, 3)); println(" Should be oo");
+"def";  // should not give error
+"hello world" ;  // ensures that spaces are allowed
+print("*** End of string tests ***\n");
+
+// arithExps
+print ("1 + 2 * 3 ="); println(1 + 2 * 3) ;
+print("1 + 2 + 3 ="); println(1 + 2 + 3);
+print("1 + 2 > 2 + 3 ="); println(1 + 2 > 2 + 3);
+
+// def tests
+println("*** def tests ***");
+println("def x 1 ...");
+def x 1 ;
+print("x = "); print(x) ; print("\n");
+
+println("def x 1 + 2 * 3 ...") ;
+def x 1 + 2 * 3 ;
+print("x = "); print(x); println(" Should be 7");
+
+println("def s <quote foo>") ;
+def s "foo" ;
+print("s = "); print(s); print("\n");
+println("*** End of def tests ***");
+
+// proc tests
+print("*** proc tests ***\n");
+proc(x) x + 1 ;
+proc(x) proc(n) x + n ;
+print(proc(x) x(x)) ; print("\n");
+print("*** End of proc tests ***\n");
+
+// call tests
+print ("*** procedure application tests ***\n");
+print ("Should print 3...\n");
+print((proc(n) n + 1)(2)); print("\n");
+print("Should print 81...\n");
+print((proc(f,x) (proc(m) f(f(m)))(x))(proc(n) n * n, 3)); print("\n");
+println("*** End of procedure application tests ***");
+
+println("*** Call expression ***");
+def f proc(y, z) pair(y, z);
+print("call(f, [1, 2]) = "); print(call(f, [1, 2]));
+println("Should be (1 . 2)"); 
+print("call(f, list(3, 4)) = "); print(call(f, list(3, 4)));
+println("Should be (3 . 4)"); 
+
+def g proc(x) list(x - 1, 1);
+print("call(f, g(4)) = "); print(call(f, g(4)));
+println("Should be (3 . 1)");
+
+println("*** End of Call expression ***");
+
+// let tests
+print("*** let tests ***\n");
+print(let(x be 1) x + 1) ; print("\n");
+def a 0;
+print(let(f be proc(n) n * n)
+	let (a be f(5))
+	   a) ;
+print("\n");
+def a 3; def b 7; def f proc(n) n + 1;
+let(b be 5,
+    f be (proc(n) a * n),
+    a be f(b)) {
+  print("a= "); print(a); 
+  print("Should be 8, not 3, 15, 21 or 6"); print("\n");
+  print("b= "); print(b); println("Should be 5 not 7");
+  print("\n");
+  print("f(b) = "); print(f(b)); print (" should be 15, not 6"); print("\n");
+  };
+
+print("should be 5 not 4...");
+def f proc(n) n + 1 ;
+print(
+	let(f be proc(n) if n < 1 then 1 else 1 + f(n - 2))
+	  f(5)
+) ;
+print("\n");
+print("*** end of let tests ***\n");
+
+// def within proc
+println("*** Def within proc tests ***");
+def a 5;
+def f proc(n) {
+    def a 3;
+    def g proc(x) {
+	println("<now in g>:");
+	print("x = "); println(x);
+	print("n = "); println(n);
+	print("x + a * n = ");
+	print(x + a * n); print("\t");
+	print("Should be 3n + x"); print("\n");
+	println("<leaving g>...");
+	};
+    g(1);
+}; //added semicolon 
+print("f(2) = "); print(f(2)); print("Should be 7"); print("\n");
+print("a = "); print(a); print("Should be 5"); print("\n");
+println("*** End of Internal Def Test ***");
+
+// if tests
+println("*** If Tests ***");
+println("Should print: 1, 0, 1");
+println(if #t then 1 else 0) ;
+println(if #f then 1 else 0) ;
+println(if 1 < 2 then 1 else 0);
+print("*** End of If tests ***\n");
+
+// case expression
+println("*** Case Expression Tests ***");
+def x 3;
+def f proc(x)
+  case {
+     x < 0: print ("x is negative\n"),
+     x = 0: print ("x is zero\n"),
+     else: print ("x is positive\n")
+  };
+
+print("should print x is negative");
+print(f(-1));
+println("*** End of Case Tests ***");
+
+// assignment tests
+print("*** Assignment Tests ***\n");
+def x 1 ; print("after def: x = "); print(x) ; println ("... Should be 1");
+x := 3 ; 
+print("after assgn: x = "); print(x); println("... Should be 3");
+def f proc(n) proc(x) n + x ;
+def g f(2);
+print("Should print 5...");
+print(g(3)) ; print("\n");
+f := f(g(3)) ;
+print("Should print 8...");
+print(f(3)) ; print("\n");
+
+println("Non-local assignment test...");
+print("before: x = "); print(x); println("... Should still be 3");
+
+def h proc(n) { x := n; n; }; //added a semicolon after the second n
+println("Changing x to "); print(h(x + 1));
+print("after: x = "); print(x); println("... Should be 1 more");
+
+println("Internal def assignment test...");
+def a 3;
+def assgn_test proc(n) {
+   def a 7;
+   print("a ="); print(a); print("Should be 7 not 3"); print("\n");
+   a := n;
+   print("a ="); print(a); 
+   print(" Should be "); print(n); print(" not 7 or 3"); print("\n");
+   }; //added semicolon
+
+print("a ="); print(a); print("Should be 3"); print("\n");
+assgn_test(5);
+print("a ="); print(a); print("Should be 3"); print("\n");
+
+print("*** End of Assignment tests ***\n");
+
+// vectors NB: added comma to the last element of each vector 
+print("*** Vector tests ***"); print("\n");
+print("Should print [:1, 2, 3:] - ");
+print([: 1 , 2 , 3, :]) ; print("\n");
+
+print("Should print [:3, 5, 8:] - ");
+print([: 1 + 2 , 2 + 3 , 3 + 5, :]) ; print("\n");
+
+print("Should print [:3, 12, 5:] - ");
+print([: 1 + 2 , 3 * 4 , 12 - 7, :]) ; print("\n");
+
+print("Should print [:0, 2, 4, 6, 8:] - ");
+print([: 5 : proc(n) (2 * n), :]) ; print("\n");
+
+print("Should print [:0, 1, 2, 0, 1, 4, 9:] - ");
+print([: 3 : proc(n) n , 4 : proc(n) n * n, :]) ; print("\n");
+
+print("Should print [:1, 2, 3, 4, 5, 6, 7:] - ");
+print([: 1 , 3 : proc(n) n + 2 , 5 , 6 , 7, :]) ; print("\n");
+print("*** End of Vector tests ***"); print("\n");
+
+println(
+if #e = #e then 1 else 2);

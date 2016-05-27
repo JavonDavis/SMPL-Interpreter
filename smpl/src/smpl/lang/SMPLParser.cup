@@ -1,0 +1,301 @@
+package smpl.lang;
+
+import java_cup.runtime.*;
+import java.io.*;
+import java.util.*;
+
+/* Preliminaries to set up and use the scanner.  */
+action code {:          :};
+
+parser code {:
+    SMPLLexer lexer;
+
+    public SMPLParser(SMPLLexer l) {
+                    super(l);
+                    lexer = l;
+                }
+
+    public SMPLParser(String file) throws FileNotFoundException {
+              this(new SMPLLexer(new FileReader(file)));
+    }
+
+                public SMPLParser(InputStream is) {
+                    this(new SMPLLexer(is));
+                }
+
+    public void report_error(String message, Object info) {
+        System.err.println(message + info);
+    }
+
+    public void syntax_error(Symbol cur_token) {
+        System.err.print("Line " + lexer.getLine() +
+             " near char " + lexer.getChar() + ": ");
+        report_error("Syntax error while reading: ", cur_token);
+        System.err.println ("Last token read is " +
+           lexer.getText());
+    }
+      :};
+
+init with {:
+    // No longer necessary
+    :};
+scan with {:
+    try {
+        return lexer.next_token();
+    } catch (java.io.IOException ioe) {
+        System.out.println ("Unrecognised token at line: " +
+                                lexer.getLine() + ", char: " + lexer.getChar());
+        System.out.println(ioe.getMessage());
+        throw ioe;
+    }
+    :};
+
+/* Terminals (tokens returned by the scanner). */
+
+/* Keywords */
+terminal PROC, CALL, LAZY, LET, DEF;
+
+/* Arithmetic operators */
+terminal PLUS, MINUS, TIMES, DIV, MOD;
+
+/* Punctuation */
+terminal LPAREN, RPAREN, LBRACKET, RBRACKET, SEMI, COMMA, COLON;
+
+terminal Integer INTEGER;
+terminal Double FRACTION;
+terminal Double REAL;
+terminal String VAR;
+terminal String STRING;
+terminal String LBRACE,RBRACE,ASSIGN,PERIOD,NOT,AND,OR,TILDE,AT,AMP,QUESTION,PIPE;
+
+/* Non terminals */
+non terminal SMPLProgram program;
+
+non terminal SMPLStmtSequence stmtList;
+non terminal SMPLStatement stmt;
+non terminal SMPLStmtDefinition smplStmtDef;
+
+non terminal SMPLExp smplExp;
+
+/* Expressions */
+non terminal SMPLExp builtinExp;
+non terminal ProcExp procExp;
+non terminal ProcExp procTerm;
+non terminal SMPLExp stmtExp;
+non terminal SMPLExp callExp;
+non terminal SMPLExp lazyExp;
+non terminal SMPLExp booleanExp;
+non terminal SMPLExp binHexExp;
+non terminal SMPLExp caseExp;
+non terminal SMPLExp ifExp;
+non terminal SMPLExp compoundExp;
+non terminal SMPLExp conditionalExp;
+non terminal SMPLExp readExp;
+non terminal SMPLExp readIntExp;
+non terminal VectorExp vectorExp;
+non terminal ListLiteral listLiteral;
+non terminal SMPLExp funCall;
+non terminal SMPLExp strLit;
+
+
+/* Statements */
+non terminal LetStmt letStmt;
+non terminal PrintStmt printStmt;
+non terminal PrintLnStmt printLnStmt;
+
+non terminal Binding binding;
+non terminal CaseBinding caseBinding;
+
+non terminal SMPLExp opExp;
+non terminal SMPLExp bitExp;
+non terminal SMPLExp logicExp;
+non terminal SMPLExp arithExp;
+non terminal SMPLExp term;
+non terminal SMPLExp logicFactor;
+non terminal SMPLExp logicTerm;
+non terminal SMPLExp logicNot;
+non terminal SMPLExp factor;
+non terminal SMPLExp vectorFactor;
+non terminal SMPLExp generatorExp;
+
+terminal String CMP;
+terminal String TRUE, FALSE, NIL, BINHEX;
+terminal EQUALS;
+terminal BE;
+
+terminal CASE;
+terminal IF, THEN, ELSE;
+terminal PRINT, PRINTLN;
+terminal READ, READINT;
+
+non terminal ArrayList<String> paramList;
+non terminal ArrayList<String> paramListE;
+non terminal ArrayList<SMPLExp> smplExpList;
+non terminal ArrayList<SMPLExp> smplExpListE;
+non terminal ArrayList<SMPLExp> vectorExpList;
+non terminal ArrayList<SMPLExp> vectorExpListE;
+non terminal ArrayList<Binding> bindingList;
+non terminal ListLiteral nilList;
+non terminal ArrayList<CaseBinding> caseBindings;
+non terminal SMPLExp listExp;
+non terminal empty;
+
+/* Grammar rules */
+
+start with program;
+
+program ::= stmtList:seq {: RESULT = new SMPLProgram(seq); :};
+
+stmtList ::= stmtList:seq stmt:s SEMI {: seq.add(s); RESULT = seq; :} |
+             stmt:s SEMI {: RESULT = new SMPLStmtSequence(s); :};
+
+stmt ::= smplStmtDef:sDef {: RESULT = new SMPLStatement(sDef); :} |
+         stmtExp:stExp {: RESULT = new SMPLStatement(stExp); :};
+
+smplStmtDef ::= DEF VAR:id stmtExp:s {: RESULT = new SMPLStmtDefinition(id, s); :} |
+                VAR:id ASSIGN stmtExp:s{: RESULT = new SMPLStmtDefinition(id, s); :};
+
+stmtExp ::= letStmt:s {: RESULT = s; :} |
+         printStmt:s {: RESULT = s; :} |
+         printLnStmt:s {: RESULT = s; :} |
+         arithExp:e {: RESULT = e; :} |
+         logicExp:e {: RESULT = e; :} |
+         procExp:e {: RESULT = e; :} |
+         lazyExp:e {: RESULT = e; :} |
+         binHexExp:e {: RESULT = e; :} |
+         callExp:e {: RESULT = e; :} |
+         caseExp:e {: RESULT = e; :} |
+         ifExp:e {: RESULT = e; :} |
+         readExp:e {: RESULT = e; :} |
+         readIntExp:e {: RESULT = e; :} |
+         vectorExp:e {: RESULT = e; :} |
+         listLiteral:e {: RESULT = e; :} |
+         strLit:s {: RESULT = s; :};
+
+vectorExp::= LBRACKET COLON vectorExpList:list COLON RBRACKET {: RESULT = new VectorExp(list); :};
+
+listLiteral ::= LBRACKET smplExpList:lst RBRACKET {: RESULT = new ListLiteral(lst); :} |
+                nilList:n {: RESULT = n; :};
+
+vectorExpListE ::= vectorExpList:lst{: RESULT = lst; :} |
+                    empty{: RESULT = new ArrayList<>(); :};
+
+vectorExpList ::= vectorExpList:lst vectorFactor:sExp{: lst.add(sExp); RESULT = lst; :} |
+                vectorFactor:sExp {: ArrayList<SMPLExp> lst = new ArrayList<SMPLExp>();
+                                lst.add(sExp);
+                                RESULT = lst;
+                :};
+
+vectorFactor ::= generatorExp:e COMMA {: RESULT = e; :} | arithExp:e COMMA {: RESULT = e; :};
+
+nilList ::= NIL {: RESULT = new ListLiteral(); :} ;
+
+strLit ::= STRING:s {: RESULT = new StringLit(s); :};
+
+funCall ::= VAR:v LPAREN smplExpListE:arguments RPAREN {: RESULT = new SMPLFunctionCallExp(v, arguments); :} |
+            procTerm:e LPAREN smplExpList:arguments RPAREN {: RESULT = new UnnamedFunctionCall(e, arguments); :};
+
+procTerm ::= LPAREN procExp:e RPAREN {: RESULT = e; :};
+
+procExp ::= PROC LPAREN paramList:params RPAREN compoundExp:s {: RESULT = new ProcExp(params, s); :} |
+            PROC LPAREN paramList:params RPAREN stmt:s {: RESULT = new ProcExp(params, s); :} | 
+            procTerm:e {: RESULT = e; :};
+
+ifExp ::= IF logicExp:iExp THEN conditionalExp:tExp ELSE conditionalExp:eExp {: RESULT = new IfExp(iExp, tExp, eExp); :} ;
+
+conditionalExp ::= stmt:tExp {: RESULT = tExp; :} | compoundExp:cE {: RESULT = cE; :};
+
+caseExp ::= CASE LBRACE caseBindings:bindings RBRACE {: RESULT = new CaseExp(bindings); :};
+
+caseBindings ::= caseBinding:b COMMA caseBindings:lst {: lst.add(b); RESULT = lst; :} | 
+        caseBinding:b {: ArrayList<CaseBinding> lst = new ArrayList<>(); 
+          lst.add(b); 
+          RESULT = lst;
+          :} | ELSE COLON stmtExp:stmt {: ArrayList<CaseBinding> lst = new ArrayList<>(); 
+          lst.add(new CaseBinding(new ExpCmp("=",new ExpLit(1), new ExpLit(1)),stmt)); RESULT = lst; :};
+
+caseBinding ::= logicExp:exp COLON stmtExp:stmt {: RESULT = new CaseBinding(exp,stmt); :};
+
+compoundExp ::= LBRACE stmtList:s RBRACE {: RESULT = new CompoundExp(s); :};
+
+lazyExp ::= LAZY LPAREN smplExp:e RPAREN {: RESULT = new LazyExp(e); :};
+
+callExp ::= CALL LPAREN VAR:id COMMA stmtExp:exp RPAREN {: RESULT = new CallExp(id, exp); :};
+
+binHexExp ::= BINHEX:bh {: RESULT = new BinHexExp(bh); :} ;
+
+booleanExp ::= TRUE:t {: RESULT = new BooleanExp(t); :} | FALSE:f {: RESULT = new BooleanExp(f); :};
+
+readExp ::= READ LPAREN RPAREN {: RESULT = new ReadExp(); :} ;
+readIntExp ::= READINT LPAREN RPAREN {: RESULT = new ReadIntExp(); :} ;
+
+letStmt ::= LET LPAREN bindingList:b RPAREN stmtExp:body {: RESULT = new LetStmt(b, body); :} |
+            LET LPAREN bindingList:b RPAREN LBRACE stmtList:body RBRACE {: RESULT = new LetStmt(b, body); :};
+
+bindingList ::= binding:b COMMA bindingList:lst {:
+  lst.add(b);
+  RESULT = lst;
+  :} |
+  binding:b {:
+          ArrayList<Binding> lst = new ArrayList<Binding>();
+    lst.add(b);
+    RESULT = lst;
+       :};
+
+binding::= VAR:v BE stmtExp:e {: RESULT = new Binding(v, e); :};
+
+printStmt ::= PRINT LPAREN stmtExp:e RPAREN {: RESULT = new PrintStmt(e); :};
+
+printLnStmt ::= PRINTLN LPAREN stmtExp:e RPAREN {: RESULT = new PrintLnStmt(e); :};
+
+paramListE ::= paramList:lst {: RESULT = lst; :} |
+         empty {: RESULT = new ArrayList<>(); :} ;
+
+paramList ::= paramList:lst COMMA VAR:id {: lst.add(id); RESULT = lst; :} |
+      VAR:id {: RESULT = new ArrayList<>(); RESULT.add(id); :};
+
+generatorExp ::= arithExp:e COLON procExp:pe {: RESULT = new GeneratorExp(e,pe); :};
+
+smplExpListE ::= smplExpList:lst {: RESULT = lst; :} |
+                  empty {: RESULT = new ArrayList<>(); :};
+smplExpList ::= smplExpList:lst COMMA stmtExp:sExp {: lst.add(sExp); RESULT = lst; :} |
+                stmtExp:sExp {: ArrayList<SMPLExp> lst = new ArrayList<SMPLExp>();
+                                lst.add(sExp);
+                                RESULT = lst;
+                :};
+
+opExp ::= TILDE opExp:e {: RESULT = new ExpBitNot(e); :} |
+          factor:e {: RESULT = e; :};
+
+term ::= term:t TIMES opExp:e {: RESULT = new ExpMul(t, e); :} |
+         term:t DIV opExp:e {: RESULT = new ExpDiv(t, e); :} |
+         term:t MOD opExp:e {: RESULT = new ExpMod(t, e); :} |
+         opExp:e {: RESULT = e; :};
+
+arithExp ::=  arithExp:e PLUS term:b {: RESULT = new ExpAdd(e, b); :} |
+              arithExp:e MINUS term:b {: RESULT = new ExpSub(e, b); :} |
+              term:b {: RESULT = b; :};
+
+bitExp ::= bitExp:b AMP arithExp:c {: RESULT = new ExpBitAnd(b, c); :} |
+           bitExp:b PIPE arithExp:c {: RESULT = new ExpBitOr(b, c); :} |
+           arithExp:c {: RESULT = c; :} | listLiteral:l {:RESULT = l;:};
+
+logicExp ::= logicExp:l OR logicTerm:f {: RESULT = new ExpOr(l, f); :} |
+             logicTerm:f {: RESULT = f; :} ;
+
+logicTerm ::= logicTerm:l AND logicNot:f {: RESULT = new ExpAnd(l, f); :} |
+                logicNot:ln {: RESULT = ln; :};
+
+logicNot ::= NOT logicFactor:f {: RESULT = new ExpNot(f); :} |
+              logicFactor:f {: RESULT = f; :};
+
+logicFactor ::= bitExp:op1 CMP:opt bitExp:op2 {: RESULT = new ExpCmp(opt, op1, op2);  :} |
+                booleanExp:be {: RESULT = be; :} |
+                LPAREN logicExp:le RPAREN {: RESULT = le; :};
+
+factor ::= INTEGER:ilit {: RESULT = new ExpLit(ilit); :} |
+       VAR:var {: RESULT = new ExpVar(var); :} |
+       LPAREN arithExp:e RPAREN {: RESULT = e; :} |
+       funCall:fc {: RESULT = fc; :};
+
+empty ::= ;

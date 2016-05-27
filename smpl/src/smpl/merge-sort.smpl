@@ -1,0 +1,23 @@
+def mergesort proc(vec,f){
+	if size(vec) = 1 then 
+		vec 
+	else { 
+		def first 0; 
+		def last size(vec);
+		def middle (first+last)/2;
+
+		def vec1 subvector(first,middle,vec);
+		def vec2 subvector(middle,last,vec);
+
+		def top mergesort(vec1,f);
+		def bottom mergesort(vec2,f);
+
+		def result merge(top,bottom);
+	}
+};
+
+def subvector proc(start,end,vec) 
+{
+	if(start = end) then vec[start] else 
+	[: vec[start], subvector(start+1,end,vec), :]
+};
